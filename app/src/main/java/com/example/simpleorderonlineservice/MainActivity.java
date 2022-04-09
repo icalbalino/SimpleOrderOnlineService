@@ -39,6 +39,8 @@ import com.google.android.libraries.places.api.model.PlaceLikelihood;
 import com.google.android.libraries.places.api.net.FindCurrentPlaceRequest;
 import com.google.android.libraries.places.api.net.FindCurrentPlaceResponse;
 import com.google.android.libraries.places.api.net.PlacesClient;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.Arrays;
@@ -133,6 +135,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         // [END_EXCLUDE]
 
         btnOrder.setOnClickListener(view -> { saveOrder(); });
+        btnEdit.setOnClickListener(view -> { updateOrder(); });
     }
     // [END maps_current_place_on_create]
 
@@ -254,7 +257,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                                 gMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
                                         new LatLng(lastKnownLocation.getLatitude(),
                                                 lastKnownLocation.getLongitude()), DEFAULT_ZOOM));
-                                txtSelectedPlace.setText(lastKnownLocation.toString());
+
+                                LatLng resultPlace = new LatLng((double) lastKnownLocation.getLatitude(), (double) lastKnownLocation.getLongitude());
+                                selectedPlace = resultPlace;
+                                selectedMarker = gMap.addMarker(new MarkerOptions().position(selectedPlace));
+                                txtSelectedPlace.setText(resultPlace.toString());
                             }
                         } else {
                             Log.d(TAG, "Current location is null. Using defaults.");
@@ -321,6 +328,41 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 Toast.makeText(this, "Gagal ubah data order", Toast.LENGTH_SHORT).show();
             });
         }
+    }
+
+
+    private void updateOrder() {
+        isNewOrder = false;
+        String orderId = txtOrderId.getText().toString();
+        DocumentReference order = db.collection("orders").document(orderId);
+
+        order.get().addOnCompleteListener(task -> {
+            if (task.isSuccessful()) {
+                DocumentSnapshot document = task.getResult();
+                if (document.exists()) {
+                    String name = document.get("name").toString();
+                    String cuisine = document.get("cuisine").toString();
+                    Map<String, Object> place = (HashMap<String, Object>) document.get("place");
+
+                    editTextName.setText(name);
+                    editTextCuisine.setText(cuisine);
+                    txtSelectedPlace.setText(place.get("address").toString());
+
+                    LatLng resultPlace = new LatLng((double) place.get("lat"), (double) place.get("lng"));
+
+                    selectedPlace = resultPlace;
+                    selectedMarker = gMap.addMarker(new MarkerOptions().position(selectedPlace));
+                    gMap.animateCamera(CameraUpdateFactory.newLatLng(selectedPlace));
+                }
+                else {
+                    isNewOrder = true;
+                    Toast.makeText(this, "Document does not exist!", Toast.LENGTH_SHORT).show();
+                }
+            }
+            else {
+                Toast.makeText(this, "Unable to read the db!", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
 
