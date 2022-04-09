@@ -9,6 +9,8 @@ import androidx.core.content.ContextCompat;
 
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
+import android.location.Address;
+import android.location.Geocoder;
 import android.location.Location;
 import android.os.Bundle;
 import android.util.Log;
@@ -47,6 +49,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback,
@@ -283,6 +286,40 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
     // [END maps_current_place_get_device_location]
+
+
+    /**
+     * Gets the selected location of the device, and positions the map's camera.
+     */
+    // [START maps_selected_place_on_map_click]
+    @Override
+    public void onMapClick(@NonNull LatLng latLng) {
+        selectedPlace = latLng;
+        selectedMarker.setPosition(selectedPlace);
+        gMap.animateCamera(CameraUpdateFactory.newLatLng(selectedPlace));
+        Geocoder geocoder = new Geocoder(this, Locale.getDefault());
+
+        try {
+            List<Address> addresses = geocoder.getFromLocation(selectedPlace.latitude, selectedPlace.longitude, 1);
+            if (addresses != null) {
+                Address place = addresses.get(0);
+                StringBuilder street = new StringBuilder();
+
+                for (int i=0; i <= place.getMaxAddressLineIndex(); i++) {
+                    street.append(place.getAddressLine(i)).append("\n");
+                }
+
+                txtSelectedPlace.setText(street.toString());
+            }
+            else {
+                Toast.makeText(this, "Could not find Address!", Toast.LENGTH_SHORT).show();
+            }
+        }
+        catch (Exception e) {
+            Toast.makeText(this, "Error get Address!", Toast.LENGTH_SHORT).show();
+        }
+    }
+    // [END maps_selected_place_on_map_click]
 
 
     private void saveOrder() {
@@ -551,9 +588,4 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
     // [END maps_current_place_update_location_ui]
 
-
-    @Override
-    public void onMapClick(@NonNull LatLng latLng) {
-
-    }
 }
