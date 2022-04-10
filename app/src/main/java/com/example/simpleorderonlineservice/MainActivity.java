@@ -6,20 +6,26 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.fragment.app.FragmentManager;
 
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
 import android.os.Bundle;
+import android.text.TextUtils;
+import android.util.AttributeSet;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -51,6 +57,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.zip.Inflater;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback,
         GoogleMap.OnMapClickListener {
@@ -62,7 +69,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private LatLng selectedPlace;
     private FirebaseFirestore db;
 
-    private TextView txtOrderId, txtSelectedPlace;
+    private TextView txtOrderId, txtSelectedPlace, txtInfoOrderId, txtInfoOrderName, txtInfoOrderCuisine, txtInfoOrderAddress;
     private EditText editTextName, editTextCuisine;
     private Button btnEdit, btnInfo, btnOrder;
     private boolean isNewOrder = true;
@@ -74,7 +81,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private FusedLocationProviderClient fusedLocationProviderClient;
 
     // A default location (Salatiga, Indonesia) and default zoom to use when location permission is not granted.
-    private final LatLng salatiga = new LatLng(-7.3305, 110.5084);
+    private LatLng salatiga = new LatLng(-7.3305, 110.5084);
     private static final int DEFAULT_ZOOM = 15;
     private static final int PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 1;
     private boolean locationPermissionGranted;
@@ -102,11 +109,19 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        LinearLayout mainLayout = (LinearLayout) findViewById(R.id.activity_main_layout);
+        LayoutInflater inflater = getLayoutInflater();
+        View layout = inflater.inflate(R.layout.info_layout, mainLayout, false);
+
         txtOrderId = findViewById(R.id.txt_orderId);
         txtSelectedPlace = findViewById(R.id.txt_selectedPlace);
         editTextName = findViewById(R.id.editTxt_name);
         editTextCuisine = findViewById(R.id.editTxt_cuisine);
-        btnEdit = findViewById(R.id.btn_editOrder);
+        txtInfoOrderId = (TextView) layout.findViewById(R.id.txtInfoOrderId1);
+        txtInfoOrderName = (TextView) layout.findViewById(R.id.txtInfoOrderName2);
+        txtInfoOrderCuisine = (TextView) layout.findViewById(R.id.txtInfoOrderCuisine3);
+        txtInfoOrderAddress = (TextView) layout.findViewById(R.id.txtInfoOrderAddress4);
+        btnEdit = (Button) findViewById(R.id.btn_editOrder);
         btnInfo = findViewById(R.id.btn_readOrder);
         btnOrder = findViewById(R.id.btn_order);
         db = FirebaseFirestore.getInstance();
@@ -139,6 +154,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         btnOrder.setOnClickListener(view -> { saveOrder(); });
         btnEdit.setOnClickListener(view -> { updateOrder(); });
+        btnInfo.setOnClickListener(view -> { infoOrder(); });
+
+        mainLayout.addView(layout);
     }
     // [END maps_current_place_on_create]
 
@@ -223,6 +241,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 return infoWindow;
             }
         });
+        this.gMap.setOnMapClickListener(this);
         // [END map_current_place_set_info_window_adapter]
 
         // Prompt the user for permission.
@@ -236,6 +255,40 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         getDeviceLocation();
     }
     // [END maps_current_place_on_map_ready]
+
+
+    /**
+     * Gets the selected location of the device, and positions the map's camera.
+     */
+    // [START maps_selected_place_on_map_click]
+    @Override
+    public void onMapClick(@NonNull LatLng latLng) {
+        selectedPlace = latLng;
+        selectedMarker.setPosition(selectedPlace);
+        gMap.animateCamera(CameraUpdateFactory.newLatLng(selectedPlace));
+        Geocoder geocoder = new Geocoder(this, Locale.getDefault());
+
+        try {
+            List<Address> addresses = geocoder.getFromLocation(selectedPlace.latitude, selectedPlace.longitude, 1);
+            if (addresses != null) {
+                Address place = addresses.get(0);
+                StringBuilder street = new StringBuilder();
+
+                for (int i=0; i <= place.getMaxAddressLineIndex(); i++) {
+                    street.append(place.getAddressLine(i)).append("\n");
+                }
+
+                txtSelectedPlace.setText(street.toString());
+            }
+            else {
+                Toast.makeText(this, "Could not find Address!", Toast.LENGTH_SHORT).show();
+            }
+        }
+        catch (Exception e) {
+            Toast.makeText(this, "Error get Address!", Toast.LENGTH_SHORT).show();
+        }
+    }
+    // [END maps_selected_place_on_map_click]
 
 
     /**
@@ -288,40 +341,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     // [END maps_current_place_get_device_location]
 
 
-    /**
-     * Gets the selected location of the device, and positions the map's camera.
-     */
-    // [START maps_selected_place_on_map_click]
-    @Override
-    public void onMapClick(@NonNull LatLng latLng) {
-        selectedPlace = latLng;
-        selectedMarker.setPosition(selectedPlace);
-        gMap.animateCamera(CameraUpdateFactory.newLatLng(selectedPlace));
-        Geocoder geocoder = new Geocoder(this, Locale.getDefault());
-
-        try {
-            List<Address> addresses = geocoder.getFromLocation(selectedPlace.latitude, selectedPlace.longitude, 1);
-            if (addresses != null) {
-                Address place = addresses.get(0);
-                StringBuilder street = new StringBuilder();
-
-                for (int i=0; i <= place.getMaxAddressLineIndex(); i++) {
-                    street.append(place.getAddressLine(i)).append("\n");
-                }
-
-                txtSelectedPlace.setText(street.toString());
-            }
-            else {
-                Toast.makeText(this, "Could not find Address!", Toast.LENGTH_SHORT).show();
-            }
-        }
-        catch (Exception e) {
-            Toast.makeText(this, "Error get Address!", Toast.LENGTH_SHORT).show();
-        }
-    }
-    // [END maps_selected_place_on_map_click]
-
-
     private void saveOrder() {
         Map<String, Object> order = new HashMap<>();
         Map<String, Object> place = new HashMap<>();
@@ -345,6 +364,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     .add(order)
                     .addOnSuccessListener(documentReference -> {
                         editTextName.setText("");
+                        editTextCuisine.setText("");
                         txtSelectedPlace.setText("Pilih tempat");
                         txtOrderId.setText(documentReference.getId());
                     })
@@ -384,6 +404,53 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     editTextName.setText(name);
                     editTextCuisine.setText(cuisine);
                     txtSelectedPlace.setText(place.get("address").toString());
+
+                    LatLng resultPlace = new LatLng((double) place.get("lat"), (double) place.get("lng"));
+
+                    selectedPlace = resultPlace;
+                    selectedMarker = gMap.addMarker(new MarkerOptions().position(selectedPlace));
+                    gMap.animateCamera(CameraUpdateFactory.newLatLng(selectedPlace));
+                }
+                else {
+                    isNewOrder = true;
+                    Toast.makeText(this, "Document does not exist!", Toast.LENGTH_SHORT).show();
+                }
+            }
+            else {
+                Toast.makeText(this, "Unable to read the db!", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+
+    private void infoOrder() {
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
+                .findFragmentById(R.id.map);
+        getSupportFragmentManager()
+                .beginTransaction()
+                .remove(mapFragment)
+                .commit();
+
+        btnInfo.setVisibility(View.GONE);
+        btnEdit.setVisibility(View.GONE);
+        btnOrder.setVisibility(View.GONE);
+
+        isNewOrder = false;
+        String orderId = txtOrderId.getText().toString();
+        DocumentReference order = db.collection("orders").document(orderId);
+
+        order.get().addOnCompleteListener(task -> {
+            if (task.isSuccessful()) {
+                DocumentSnapshot document = task.getResult();
+                if (document.exists()) {
+                    String name = document.get("name").toString();
+                    String cuisine = document.get("cuisine").toString();
+                    Map<String, Object> place = (HashMap<String, Object>) document.get("place");
+
+                    txtOrderId.setText("ID : " + orderId);
+                    editTextName.setText("nama : " + name);
+                    editTextCuisine.setText("masakan : " + cuisine);
+                    txtSelectedPlace.setText("alamat : " + place.get("address").toString());
 
                     LatLng resultPlace = new LatLng((double) place.get("lat"), (double) place.get("lng"));
 

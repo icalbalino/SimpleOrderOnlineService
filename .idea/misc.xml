@@ -3,8 +3,9 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
-        <entry key="..\:/Users/user/AndroidStudioProjects/SimpleOrderOnlineService/app/src/main/res/layout/activity_main.xml" value="0.25" />
+        <entry key="..\:/Users/user/AndroidStudioProjects/SimpleOrderOnlineService/app/src/main/res/layout/activity_main.xml" value="0.19662921348314608" />
         <entry key="..\:/Users/user/AndroidStudioProjects/SimpleOrderOnlineService/app/src/main/res/layout/custom_info_contents.xml" value="0.1" />
+        <entry key="..\:/Users/user/AndroidStudioProjects/SimpleOrderOnlineService/app/src/main/res/layout/info_layout.xml" value="0.22" />
         <entry key="..\:/Users/user/AndroidStudioProjects/SimpleOrderOnlineService/app/src/main/res/menu/current_place_menu.xml" value="0.1841880341880342" />
       </map>
     </option>
